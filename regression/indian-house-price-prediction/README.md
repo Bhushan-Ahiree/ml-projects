@@ -2,69 +2,93 @@
 
 A machine learning regression project that predicts residential property prices using structured housing data from multiple Indian cities.
 
-This project was built as part of my Machine Learning learning journey and focuses on building a clean, reproducible ML workflow rather than chasing the highest accuracy.
+This project was built as part of my Machine Learning learning journey and focuses on building a **clean, reproducible, and interview-ready ML workflow** rather than chasing the highest possible accuracy.
 
 ---
 
-# Project Objectives
+# 🎯 Project Objectives
 
-- Understand the complete ML workflow
-- Perform Exploratory Data Analysis (EDA)
-- Clean and preprocess real-world data
-- Build a regression model
-- Evaluate model performance
-- Apply engineering improvements for better data quality and reproducibility
+* Understand an end-to-end machine learning workflow
+* Perform Exploratory Data Analysis (EDA)
+* Clean and prepare real-world housing data
+* Engineer relevant features
+* Build regression models
+* Evaluate models using appropriate metrics
+* Identify and reduce train/test contamination caused by repeated feature groups
+* Build a reproducible preprocessing and model pipeline
+* Persist the trained model for later use
 
 ---
 
-# Dataset
+# 📊 Dataset
+
+The raw dataset contains residential property information from multiple Indian cities.
 
 ## Features
 
-| Feature | Description |
-|----------|-------------|
-| bhk | Number of bedrooms |
-| propertytype | Property type |
-| location | City |
-| sqft | Built-up area (square feet) |
+| Feature        | Description                  |
+| -------------- | ---------------------------- |
+| `bhk`          | Number of bedrooms           |
+| `propertytype` | Property type                |
+| `location`     | City/locality                |
+| `sqft`         | Built-up area in square feet |
 
-### Target
+## Target
 
-```
+```text
 totalprice
 ```
 
+The `pricepersqft` column was excluded from model training because it is directly related to the target price and can introduce target-entangled information into the model.
+
 ---
 
-# Project Workflow
+# 🔄 Project Workflow
 
-```
+```text
 Raw Dataset
-      │
-      ▼
+     │
+     ▼
 Exploratory Data Analysis
-      │
-      ▼
+     │
+     ▼
 Data Cleaning
-      │
-      ▼
+     │
+     ▼
 Feature Engineering
-      │
-      ▼
-Pipeline
-      │
-      ▼
-Linear Regression
-      │
-      ▼
-Model Evaluation
+     │
+     ▼
+Refined Dataset
+     │
+     ▼
+Group-Aware Train/Test Split
+     │
+     ▼
+Preprocessing Pipeline
+     │
+     ▼
+Model Training
+     │
+     ├───────────────┐
+     ▼               ▼
+Linear Regression  Tree-Based Models
+     │               │
+     └───────┬───────┘
+             ▼
+      Model Evaluation
+             │
+             ▼
+       Model Comparison
+             │
+             ▼
+    Persisted ML Pipeline
 ```
 
 ---
 
-# Repository Structure
+# 📁 Repository Structure
 
-```
+```text
 indian-house-price-prediction/
 
 ├── data/
@@ -72,17 +96,18 @@ indian-house-price-prediction/
 │   └── processed/
 │
 ├── notebooks/
-│   ├── 01_data_loading.ipynb
+│   ├── 01_eda.ipynb
 │   ├── 02_data_cleaning.ipynb
 │   ├── 03_feature_engineering.ipynb
 │   ├── 04_model_training.ipynb
 │   ├── 05_model_evaluation.ipynb
-│   ├── 06_exploratory_data_analysis.ipynb
+│   ├── 06_model_comparison.ipynb
 │   ├── 07_engineering_refactor.ipynb
 │   ├── 08_duplicate_leakage_analysis.ipynb
 │   └── 09_grouped_train_test_split.ipynb
 │
 ├── models/
+│   └── house_price_pipeline.pkl
 │
 ├── reports/
 │
@@ -92,90 +117,46 @@ indian-house-price-prediction/
 
 ---
 
-# Data Preprocessing
+# 🧹 Data Preprocessing
 
 The project includes:
 
-- Missing value inspection
-- Duplicate removal
-- Invalid area filtering
-- Categorical encoding using One-Hot Encoding
-- Train/Test splitting
-- Group-aware evaluation
-- Scikit-learn Pipeline
+* Missing-value inspection
+* Duplicate analysis and removal
+* Invalid property-size filtering
+* Feature selection
+* Categorical encoding using One-Hot Encoding
+* Group-aware train/test splitting
+* Scikit-learn Pipeline for preprocessing and model training
+
+The refined dataset contains:
+
+```text
+13,297 rows
+5 columns
+```
+
+The model uses the following four input features:
+
+```text
+bhk
+propertytype
+location
+sqft
+```
 
 ---
 
-# Model
+# 🔐 Group-Aware Evaluation
 
-Current baseline model:
+The dataset contains repeated combinations of the same input features:
 
-- Linear Regression
+```text
+bhk + propertytype + location + sqft
+```
 
----
+These repeated feature groups can have different target prices.
 
-# Evaluation Metrics
+A conventional random train/test split can therefore place rows from the same feature group in both training and test sets.
 
-- Mean Absolute Error (MAE)
-- Root Mean Squared Error (RMSE)
-- R² Score
-
----
-
-# Engineering Improvements
-
-Compared to the initial baseline, the project includes:
-
-- Removal of physically invalid property sizes
-- Removal of exact duplicate records
-- Pipeline-based preprocessing and training
-- Group-aware train/test split to reduce feature leakage
-
----
-
-# Technologies Used
-
-- Python
-- Pandas
-- NumPy
-- Matplotlib
-- Scikit-learn
-- Jupyter Notebook
-
----
-
-# Learning Outcomes
-
-Through this project I learned:
-
-- End-to-end ML workflow
-- Data cleaning
-- Feature engineering
-- Exploratory Data Analysis
-- Regression modeling
-- Pipeline creation
-- Model evaluation
-- Engineering practices for reproducible ML workflows
-
----
-
-# Future Improvements
-
-This project is intentionally frozen as **Version 1.0**.
-
-Future versions will include techniques learned later in my ML roadmap, such as:
-
-- Ridge Regression
-- Decision Trees
-- Random Forest
-- Hyperparameter Tuning
-
----
-
-## Author
-
-**Bhushan Ahire**
-
-MCA (Final Year)
-
-Machine Learning & Backend Engineering
+To
