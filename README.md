@@ -18,9 +18,17 @@ This repository focuses on end-to-end ML development—from data exploration to 
 
 ## 📂 Projects
 
+### 🤖 GenAI & RAG
+
+- [x] Property RAG Agent — Intelligent property search using semantic retrieval and LLMs
+  - Natural language property search
+  - Semantic retrieval + structured data filtering
+  - RAG-based question answering
+  - Grounded responses (no hallucinations)
+
 ### 📈 Regression
 
-- [ ] Indian House Price Prediction
+- [x] Indian House Price Prediction
 - [ ] Salary Prediction
 - [ ] Used Car Price Prediction
 
@@ -58,6 +66,9 @@ This repository focuses on end-to-end ML development—from data exploration to 
 - Joblib
 - Docker
 - Git
+- LLMs & RAG Systems
+- Vector Databases
+- Embedding Models
 
 ---
 
@@ -66,11 +77,17 @@ This repository focuses on end-to-end ML development—from data exploration to 
 ```text
 ml-projects/
 │
+├── genai-agents/
+│   └── property-rag-agent/
+│
 ├── regression/
+│   └── indian-house-price-prediction/
+│
 ├── classification/
 ├── clustering/
 ├── computer-vision/
 ├── nlp/
+│
 └── README.md
 ```
 
@@ -78,4 +95,7 @@ ml-projects/
 
 ## 🚀 Current Focus
 
-Building ML solutions for real estate and PropTech applications.
+Building end-to-end AI/ML systems with emphasis on:
+- **GenAI**: RAG pipelines, semantic search, and grounded LLM responses
+- **Real Estate & PropTech**: Intelligent property discovery and analysis
+- Production-ready architecture with proper evaluation metrics
