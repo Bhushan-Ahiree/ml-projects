@@ -43,5 +43,24 @@ def process_city(filepath: str, city: str) -> pd.DataFrame:
     df = filter_columns(df)
     df = drop_incomplete_rows(df)
     df["house_size"] = df["house_size"].apply(clean_house_size)
+    df = fix_city(df, city)
     df = add_ids(df, city)
     return df
+
+def fix_city(df: pd.DataFrame, city: str) -> pd.DataFrame:
+    df = df.copy()
+    df["city"] = city
+    return df
+
+def save_processed(df: pd.DataFrame, output_path: str) -> None:
+    df.to_json(output_path, orient="records", lines=True)
+    
+def load_all_properties(raw_dir: str) -> pd.DataFrame:
+    delhi = process_city(f"{raw_dir}/Indian_housing_Delhi_data.csv", "Delhi")
+    mumbai = process_city(f"{raw_dir}/Indian_housing_Mumbai_data.csv", "Mumbai")
+    pune = process_city(f"{raw_dir}/Indian_housing_Pune_data.csv", "Pune")
+
+    df = pd.concat([delhi, mumbai, pune], ignore_index=False)
+
+    return df
+
