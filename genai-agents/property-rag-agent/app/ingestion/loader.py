@@ -33,6 +33,15 @@ def filter_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(columns=columns_to_drop, errors="ignore")
     return df
 
+def drop_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df = df.dropna(subset=["numBathrooms", "description"])
+    return df
 
-# compatibility alias for older notebook imports
-infilter_columns = filter_columns
+def process_city(filepath: str, city: str) -> pd.DataFrame:
+    df = load_raw_csv(filepath)
+    df = filter_columns(df)
+    df = drop_incomplete_rows(df)
+    df["house_size"] = df["house_size"].apply(clean_house_size)
+    df = add_ids(df, city)
+    return df
