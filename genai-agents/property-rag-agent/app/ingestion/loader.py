@@ -33,10 +33,12 @@ def filter_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.drop(columns=columns_to_drop, errors="ignore")
     return df
 
+
 def drop_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df.dropna(subset=["numBathrooms", "description"])
     return df
+
 
 def process_city(filepath: str, city: str) -> pd.DataFrame:
     df = load_raw_csv(filepath)
@@ -47,13 +49,16 @@ def process_city(filepath: str, city: str) -> pd.DataFrame:
     df = add_ids(df, city)
     return df
 
+
 def fix_city(df: pd.DataFrame, city: str) -> pd.DataFrame:
     df = df.copy()
     df["city"] = city
     return df
 
+
 def save_processed(df: pd.DataFrame, output_path: str) -> None:
     df.to_json(output_path, orient="records", lines=True)
+    
     
 def load_all_properties(raw_dir: str) -> pd.DataFrame:
     delhi = process_city(f"{raw_dir}/Indian_housing_Delhi_data.csv", "Delhi")
@@ -63,4 +68,3 @@ def load_all_properties(raw_dir: str) -> pd.DataFrame:
     df = pd.concat([delhi, mumbai, pune], ignore_index=False)
 
     return df
-
