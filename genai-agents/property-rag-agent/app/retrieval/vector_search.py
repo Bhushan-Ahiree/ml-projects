@@ -7,7 +7,7 @@ def cosine_similarity(query_embedding, property_embeddings):
     
     return np.dot(property_embeddings, query_embedding) / (norm_props * norm_query + 1e-9)
 
-def retrieve_top_k(query_embedding, property_embeddings, k=5, properties=None, city=None, max_price=None):
+def retrieve_top_k(query_embedding, property_embeddings, k=5, properties=None, city=None, max_price=None, bhk=None):
     mask = np.ones(len(property_embeddings), dtype=bool)
 
     # Apply city filter if provided
@@ -17,7 +17,16 @@ def retrieve_top_k(query_embedding, property_embeddings, k=5, properties=None, c
     # Apply price filter if provided
     if max_price is not None and properties is not None:
         mask &= (properties["price"].to_numpy() <= max_price)
-        
+    
+    if bhk is not None:
+        mask &= (
+            properties["house_type"]
+            .str.extract(r"(\d+)\s*BHK", expand=False)
+            .fillna("-1")
+            .astype(int)
+            .to_numpy() == bhk
+        )
+
     # Filter the embeddings and keep track of original indices
     candidate_embeddings = property_embeddings[mask]
     candidate_indices = np.where(mask)[0]
