@@ -1,101 +1,24 @@
-# 🤖 ML Projects
+# ML Projects
 
-Production-style Machine Learning projects built from real-world datasets.
+Machine learning projects built on real Indian datasets, with a focus on correct evaluation and reproducible workflows.
 
-This repository focuses on end-to-end ML development—from data exploration to model deployment—with an emphasis on clean code, reproducible workflows, and practical applications.
+## Projects
 
----
+| Project | What it shows | Status |
+| --- | --- | --- |
+| [Indian House Price Prediction](regression/indian-house-price-prediction) | End-to-end regression on 13,297 listings. Found that repeated feature combinations leaked across a random train/test split and fixed it with a group-aware split. | Complete |
+| [Property RAG Agent](genai-agents/property-rag-agent) | Natural-language rental search: embeddings, filtered semantic retrieval, LLM answer step next. | In progress |
 
-## 🎯 Objectives
+## Stack
 
-- Build production-ready Machine Learning projects
-- Solve real-world business problems using ML
-- Follow industry-standard project structure
-- Practice model deployment with FastAPI
-- Create a portfolio of complete ML applications
+Python · Pandas · NumPy · Scikit-learn · Matplotlib · sentence-transformers · Git
 
----
-
-## 📂 Projects
-
-### 🤖 GenAI & RAG
-
-- [x] Property RAG Agent — Intelligent property search using semantic retrieval and LLMs
-  - Natural language property search
-  - Semantic retrieval + structured data filtering
-  - RAG-based question answering
-  - Grounded responses (no hallucinations)
-
-### 📈 Regression
-
-- [x] Indian House Price Prediction
-- [ ] Salary Prediction
-- [ ] Used Car Price Prediction
-
-### 📊 Classification
-
-- [ ] Customer Churn Prediction
-- [ ] Loan Approval Prediction
-- [ ] Spam Email Detection
-
-### 📉 Clustering
-
-- [ ] Customer Segmentation
-
-### 👁️ Computer Vision
-
-- [ ] Image Classification
-- [ ] Object Detection
-
-### 🧠 Natural Language Processing
-
-- [ ] Sentiment Analysis
-- [ ] Text Classification
-
----
-
-## 🛠 Tech Stack
-
-- Python
-- NumPy
-- Pandas
-- Matplotlib
-- Scikit-learn
-- OpenCV
-- FastAPI
-- Joblib
-- Docker
-- Git
-- LLMs & RAG Systems
-- Vector Databases
-- Embedding Models
-
----
-
-## 📌 Repository Structure
+## Structure
 
 ```text
 ml-projects/
-│
-├── genai-agents/
-│   └── property-rag-agent/
-│
 ├── regression/
 │   └── indian-house-price-prediction/
-│
-├── classification/
-├── clustering/
-├── computer-vision/
-├── nlp/
-│
-└── README.md
+└── genai-agents/
+    └── property-rag-agent/
 ```
-
----
-
-## 🚀 Current Focus
-
-Building end-to-end AI/ML systems with emphasis on:
-- **GenAI**: RAG pipelines, semantic search, and grounded LLM responses
-- **Real Estate & PropTech**: Intelligent property discovery and analysis
-- Production-ready architecture with proper evaluation metrics
