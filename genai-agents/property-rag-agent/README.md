@@ -1,375 +1,110 @@
-# 🏠 Property RAG Agent
+# Property RAG Agent
 
-> **Natural language property search powered by RAG, semantic retrieval, an agentic decision layer, and LLMs.**
+Natural-language search over Indian rental listings. It retrieves matching properties with semantic search plus hard filters, and the next step is an LLM that answers only from the retrieved listings.
 
-**Property RAG Agent** is an end-to-end AI/ML engineering project that turns messy Indian rental listings into an intelligent property search system.
+## Status
 
-Instead of forcing users to search with rigid filters, it lets them describe what they want naturally — and either retrieves the most relevant properties using **semantic search + structured data + LLM reasoning**, or, when the question needs computation instead of retrieval, routes it to a calculation tool.
+**Built**
 
----
+- Data loading and cleaning for Delhi, Mumbai and Pune rental listings (`app/ingestion/loader.py`)
+- One text document per listing, combining structured fields and the free-text description (`app/embeddings/text_builder.py`)
+- Embeddings with sentence-transformers `all-MiniLM-L6-v2` (`app/embeddings/build_embeddings.py`)
+- Retrieval: hard filters on city, max price and BHK, then cosine similarity to rank the remaining listings (`app/retrieval/vector_search.py`)
+- Context builder that formats the top results for an LLM prompt (`app/retrieval/context_builder.py`)
 
-## ⚡ The Problem
+**Next**
 
-Traditional property search looks like:
+- LLM answer step that uses only the retrieved listings
+- Small evaluation set: retrieval precision@k and answer faithfulness
+- Hybrid retrieval (BM25 + dense) and reranking, kept only if the evaluation shows a gain
+- Calculation tools (EMI, rent per sq ft) and a router that decides between retrieval and calculation
+- FastAPI endpoint
 
-```text
-City → Pune
-BHK → 2
-Budget → ₹30,000
-Location → Baner
-```
+## The problem
 
-But real users ask things like:
+Filter-based search needs exact inputs: city, BHK, budget. Real users write things like:
 
-> *"I'm looking for a spacious 2 BHK in Pune around 30k, preferably in a good area and suitable for a family."*
+> "Spacious 2 BHK in Pune around 30k, good for a family."
 
-> *"What's the EMI on this listing at 8.5% for 20 years?"*
+Some of that is a hard constraint (city, BHK, budget) and some of it is fuzzy (spacious, family-friendly). This project treats them differently.
 
-Keyword search struggles with the first. Pure retrieval can't answer the second at all — it needs a tool call, not a lookup.
+## How retrieval works
 
-```text
-Natural Language
-       ↓
-Understand Intent
-       ↓
-Route: Retrieval, Calculation, or Insufficient Info
-       ↓
-Retrieve / Compute
-       ↓
-Rank Results (if retrieval)
-       ↓
-Generate Grounded Answer
-```
+1. Each listing becomes a short text document: type, location, area, rent, bathrooms and description.
+2. All documents are embedded once with `all-MiniLM-L6-v2`.
+3. The user query is embedded with the same model.
+4. Hard constraints are applied first as an exact mask: city, max price, BHK.
+5. Only the listings that pass are ranked by cosine similarity, and the top k are returned.
 
----
+Why filter first: similarity scores can't enforce a budget. A 45k flat can be "similar" to a 30k query. Exact constraints are applied exactly, and similarity is used only for ranking.
 
-## 🧠 What I'm Building
+## Data
 
-A property intelligence pipeline capable of:
+Indian rental listings for Delhi, Mumbai and Pune ([Kaggle: `bhavyadhingra00020/india-rental-house-price`](https://www.kaggle.com/datasets/bhavyadhingra00020/india-rental-house-price), scraped April 2024).
 
-* 🔎 Semantic property search
-* 🧩 Structured + unstructured retrieval
-* 🤖 RAG-based question answering
-* 🧮 Agentic routing between retrieval, calculation, and "insufficient info"
-* 📊 Property comparison
-* 🎯 Constraint-aware retrieval
-* 🛡️ Grounded responses
-* 📈 Retrieval & generation evaluation
-
-The goal isn't to build another "ChatGPT wrapper."
-
-The goal is to understand **how production AI systems — including the agentic layer employers are hiring for in 2026 — are actually built.**
-
----
-
-# 🏗️ Architecture
+`price` is **monthly rent**, not a sale price.
 
 ```text
-                   ┌──────────────────┐
-                   │   Rental Data    │
-                   │ Delhi • Mumbai   │
-                   │      • Pune      │
-                   └────────┬─────────┘
-                            │
-                            ▼
-                  ┌────────────────────┐
-                  │ Data Engineering   │
-                  │ Validation         │
-                  │ Cleaning           │
-                  │ Normalization      │
-                  └─────────┬──────────┘
-                            │
-                            ▼
-                  ┌────────────────────┐
-                  │ Property Documents │
-                  └─────────┬──────────┘
-                            │
-                            ▼
-                  ┌────────────────────┐
-                  │    Embeddings      │
-                  └─────────┬──────────┘
-                            │
-                            ▼
-                  ┌────────────────────┐
-                  │   Vector Search    │
-                  │ (Hybrid: BM25 +    │
-                  │  Dense + Rerank)   │
-                  └─────────┬──────────┘
-                            ▲
-                            │
-                     User Query
-                            │
-                            ▼
-                  ┌────────────────────┐
-                  │ Agent Router:      │
-                  │ Retrieval? Calc?   │
-                  │ Insufficient info? │
-                  └─────────┬──────────┘
-                       ┌────┴────┐
-                       ▼         ▼
-              ┌──────────────┐ ┌──────────────┐
-              │  Retrieval   │ │ Tool Call     │
-              │  + Rank      │ │ (EMI, ₹/sqft) │
-              └──────┬───────┘ └──────┬────────┘
-                     └────────┬───────┘
-                               ▼
-                  ┌────────────────────┐
-                  │       LLM          │
-                  │ Grounded Generation│
-                  └─────────┬──────────┘
-                            │
-                            ▼
-                       🎯 Answer
+data/raw/
+├── Indian_housing_Delhi_data.csv
+├── Indian_housing_Mumbai_data.csv
+└── Indian_housing_Pune_data.csv
 ```
 
----
+Raw files are never modified. Processed output is written to `data/processed/`.
 
-# 📊 Data
+### Data decisions
 
-Real-world Indian rental listing data from **Delhi · Mumbai · Pune** ([Kaggle: `bhavyadhingra00020/india-rental-house-price`](https://www.kaggle.com/datasets/bhavyadhingra00020/india-rental-house-price), scraped April 2024, ~16,300 listings).
+Based on null-rate analysis across all three cities.
 
-**Note:** `price` is **monthly rent**, not a sale/resale price. All comparisons in this system are rent comparisons.
+**Columns dropped**
 
-Raw datasets are intentionally preserved:
+| Field | Reason |
+| --- | --- |
+| `currency` | Constant (always INR) |
+| `numBalconies` | ~53% missing |
+| `isNegotiable` | ~77% missing |
+| `priceSqFt` | ~85% missing |
+| `latitude` / `longitude` | Out of scope for v1: no proximity search planned yet |
+| `verificationDate` | Relative text ("posted 2 years ago") with no anchor date |
 
-```text
-data/
-├── raw/
-│   ├── delhi.csv
-│   ├── mumbai.csv
-│   └── pune.csv
-│
-└── processed/
-```
-
-### Why keep raw data?
-
-Because preprocessing should be reproducible.
-
-```text
-Raw Data → Cleaning → Validation → Normalization → Processed Data
-```
-
-The original data is never modified.
-
----
-
-# 🧹 Data Decisions
-
-After inspecting the complete datasets (null-rate analysis across all three cities), the normalized schema is:
-
-```text
-house_type
-house_size
-location
-city
-price
-num_bathrooms
-description
-security_deposit
-status
-```
-
-**Column-level drops** — insufficient signal across the full dataset:
-
-| Field | Decision | Reason |
-| --- | --- | --- |
-| `currency` | Remove | Constant (always INR) — metadata, not a feature |
-| `numBalconies` | Remove | ~53% missing |
-| `isNegotiable` | Remove | ~77% missing |
-| `priceSqFt` | Remove | ~85% missing |
-| `latitude` / `longitude` | Remove (v1) | Out of scope — no proximity-search feature planned yet. Deliberate scope cut, not a data-quality call |
-| `verificationDate` | Remove | Relative text ("posted 2 years ago") with no scrape-date anchor — can't be converted to a real timestamp |
-
-**Row-level drops** — column kept, but incomplete rows removed:
+**Rows dropped**
 
 | Field | % null | Decision |
 | --- | --- | --- |
-| `numBathrooms` | ~0.3% | Drop the null rows — negligible loss, not worth imputation complexity |
-| `description` | ~5% | Drop the null rows — no text means no embedding signal, so the row is unusable for RAG regardless of other fields |
+| `numBathrooms` | ~0.3% | Drop the rows: negligible loss |
+| `description` | ~5% | Drop the rows: no text means no embedding signal |
 
-These aren't arbitrary preprocessing decisions. **They're based on the actual data.**
+## Design principle: the LLM is not the database
 
----
+When the generation step is added, every property fact in an answer must come from a retrieved listing. If the data doesn't say whether a flat has parking, the answer should say that, not guess. This will be measured with the evaluation set, not assumed.
 
-# 🔍 Pipeline
-
-### 01 — Ingest
-Load and validate raw listings.
-
-### 02 — Normalize
-Convert inconsistent property data into the schema above.
-
-### 03 — Build Documents
-Combine structured property fields with the free-text description.
-
-```text
-2 BHK Apartment
-Baner, Pune
-
-Rent: ₹28,000/month
-Bathrooms: 2
-Security Deposit: ₹84,000
-
-Spacious apartment located near...
-```
-
-### 04 — Embed
-Convert each property document into a semantic vector.
-
-### 05 — Retrieve
-Hybrid search (BM25 + dense vector) over the query, then re-rank the top-k with a cross-encoder.
-
-### 06 — Route
-Classify the query: does it need retrieval, a calculation (EMI, price-per-sqft), or is there insufficient information to answer at all?
-
-### 07 — Generate
-Pass retrieved context (or tool output) to an LLM and generate a grounded answer.
-
----
-
-# 🛡️ No Hallucinated Properties
-
-> **The LLM is not the database.**
-
-Property information must come from retrieved records or an explicit tool call — never invented.
-
-If the dataset doesn't contain parking information:
-
-❌ *"This apartment has dedicated parking."*
-
-✅ *"Parking availability isn't specified in the available listing data."*
-
-Grounding and failure handling are treated as **engineering problems**, not just prompting problems — the router logging which path it chose (and whether that choice was correct) is itself an evaluation artifact.
-
----
-
-# 🧪 Evaluation
-
-A RAG system isn't successful just because the response sounds impressive — this project measures it.
-
-**Retrieval:** Precision@K · Recall@K · MRR · ranking quality
-
-**Generation:** Faithfulness · relevance · completeness · unsupported claims
-
-**Agent:** routing accuracy (did it choose retrieval / calculation / insufficient-info correctly?)
-
-**System:** latency · token cost · failure rate
-
-The goal is to answer *"is the system actually getting better?"* — not *"does the demo look cool?"*
-
----
-
-# 🔬 Experiments
-
-Every optimization should have a measurable reason, tracked as a config change against a fixed evaluation set:
-
-```text
-Retrieval:   Keyword  vs  Dense  vs  Hybrid
-Ranking:     Vector similarity  vs  Vector + Reranker
-Documents:   Raw description  vs  Structured + description
-Embeddings:  Compare models on actual retrieval performance
-```
-
----
-
-# 🧰 Tech Stack
-
-**Core:** Python, Pandas, NumPy, Git
-
-**ML / Retrieval:** sentence-transformer embeddings, FAISS, BM25 (`rank_bm25`), cross-encoder reranking
-
-**GenAI:** LLM APIs, RAG, prompt engineering, structured outputs, agentic tool-calling
-
-**Engineering:** FastAPI (serving), **Celery** (async ingestion/embedding jobs), **Redis** (query caching), **MLflow** (experiment tracking), Docker, testing, CI/CD
-
----
-
-# 📁 Project Structure
+## Project structure
 
 ```text
 property-rag-agent/
 ├── app/
-│   ├── main.py
-│   ├── config.py
-│   ├── models/schemas.py
-│   ├── ingestion/
+│   ├── ingestion/loader.py
 │   ├── embeddings/
-│   ├── retrieval/          # + hybrid_search.py, reranker.py
-│   ├── generation/
-│   ├── agent/               # router.py, tools.py
-│   ├── eval/                # golden_set.json, evaluator.py
-│   ├── tasks/                # celery_tasks.py
-│   └── cache/                 # redis_cache.py
+│   │   ├── embedder.py
+│   │   ├── text_builder.py
+│   │   └── build_embeddings.py
+│   └── retrieval/
+│       ├── vector_search.py
+│       └── context_builder.py
 ├── data/
 │   ├── raw/
-│   └── processed/
-├── notebooks/
-├── tests/
-├── .env.example
-├── .gitignore
-├── requirements.txt
-└── README.md
+│   └── processed/        # generated, not committed
+├── notebooks/01_data_inspection.ipynb
+└── requirements.txt
 ```
 
----
+## Run
 
-# 🚀 Roadmap
-
-```text
-[x] Dataset acquisition
-[x] Raw data organization
-[x] Schema investigation
-[x] Missing-value analysis
-[x] Final schema design
-
-[ ] Data loader
-[ ] Normalization pipeline
-[ ] Processed dataset
-
-[ ] Document generation
-[ ] Embeddings
-[ ] Vector index (FAISS)
-[ ] Baseline (naive) retrieval
-
-[ ] Evaluation golden set
-[ ] Retrieval metrics
-[ ] Generation evaluation (faithfulness/relevance)
-
-[ ] Hybrid retrieval (BM25 + dense)
-[ ] Reranking
-[ ] Query rewriting
-
-[ ] Agent router (retrieval / calculation / insufficient-info)
-[ ] Calculation tools (EMI, price-per-sqft)
-[ ] Agent routing evaluation
-
-[ ] FastAPI service
-[ ] Celery async jobs
-[ ] Redis query caching
-[ ] MLflow experiment tracking
-[ ] Docker
-[ ] Live deployment
+```bash
+pip install -r requirements.txt
+# build data/processed/properties.jsonl with app/ingestion/loader.py (see the notebook), then:
+python -m app.embeddings.build_embeddings
 ```
 
----
-
-# 🎓 Skills Developed
-
-**Data:** cleaning · validation · normalization · pipelines
-
-**ML:** similarity · embeddings · ranking · evaluation · unsupervised learning (clustering as an embedding sanity-check)
-
-**GenAI:** LLMs · RAG · hybrid search · reranking · agentic routing · grounding
-
-**Engineering:** Python · Git · FastAPI · Celery · Redis · MLflow · Docker · deployment
-
-**Most importantly:** taking imperfect data and turning it into a measurable, reliable, production-shaped system — not just a notebook that works once.
-
----
-
-## 📌 Project Status
-
-🚧 **Active development** — currently building the data ingestion and normalization pipeline (`loader.py`).
-
-Every architectural decision here is backed by an actual measurement, not a default choice — see the Data Decisions section above.
+`properties.jsonl` and `property_embeddings.npy` are generated files and are not stored in the repo.
